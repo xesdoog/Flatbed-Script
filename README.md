@@ -1,2 +1,2 @@
-# Flatbed-Script
-Flatbed script for YimMenu [WIP]
+# Flatbed Script
+Flatbed script for YimMenu _[WIP]_
