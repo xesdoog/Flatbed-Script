@@ -56,8 +56,8 @@ flatbed:add_imgui(function()
     end
     if is_in_flatbed then
         ImGui.Text("Vehicle: "..displayText)
-        towPos, used = ImGui.Checkbox("Mark Selected Vehicle", towPos, true)
-        if ImGui.Button("Tow Nearby Vehicle") then
+        towPos, used = ImGui.Checkbox("Show Selected Vehicle", towPos, true)
+        if ImGui.Button("   Tow    ") then
             if attached_vehicle[1] == nil then
                 if validModel then
                     local controlled = entities.take_control_of(closestVehicle, 350)
@@ -98,11 +98,11 @@ flatbed:add_imgui(function()
         --         end
         --     end)
         -- end
-        if ImGui.Button("Detach Vehicle") then
+        if ImGui.Button(" Detach ") then
             for _, v in ipairs(vehicleHandles) do
                 script.run_in_fiber(function()
-                    modelHash = ENTITY.GET_ENTITY_MODEL(v)
-                    attachedVehicle = ENTITY.GET_ENTITY_OF_TYPE_ATTACHED_TO_ENTITY(current_vehicle, modelHash)
+                    local modelHash = ENTITY.GET_ENTITY_MODEL(v)
+                    local attachedVehicle = ENTITY.GET_ENTITY_OF_TYPE_ATTACHED_TO_ENTITY(PED.GET_VEHICLE_PED_IS_USING(self.get_ped()), modelHash)
                     if ENTITY.DOES_ENTITY_EXIST(attachedVehicle) then
                         ENTITY.DETACH_ENTITY(attachedVehicle)
                         ENTITY.SET_ENTITY_COORDS(attachedVehicle, playerPosition.x - (playerForwardX * 10), playerPosition.y - (playerForwardY * 10), playerPosition.z, false, false, false, false)
@@ -110,8 +110,17 @@ flatbed:add_imgui(function()
                     end
                 end)
             end
-            for k, _ in ipairs(attached_vehicle) do
-                table.remove(attached_vehicle, k)
+            for key, value in ipairs(attached_vehicle) do
+                script.run_in_fiber(function()
+                    local modelHash = ENTITY.GET_ENTITY_MODEL(v)
+                    local attachedVehicle = ENTITY.GET_ENTITY_OF_TYPE_ATTACHED_TO_ENTITY(PED.GET_VEHICLE_PED_IS_USING(self.get_ped()), modelHash)
+                    if ENTITY.DOES_ENTITY_EXIST(attachedVehicle) then
+                        ENTITY.DETACH_ENTITY(attachedVehicle)
+                        ENTITY.SET_ENTITY_COORDS(attachedVehicle, playerPosition.x - (playerForwardX * 10), playerPosition.y - (playerForwardY * 10), playerPosition.z, false, false, false, false)
+                        VEHICLE.SET_VEHICLE_ON_GROUND_PROPERLY(attached_vehicle, 5.0)
+                    end
+                end)
+                table.remove(attached_vehicle, key)
             end
         end
     else
