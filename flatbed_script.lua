@@ -112,7 +112,7 @@ flatbed:add_imgui(function()
             end
             for key, value in ipairs(attached_vehicle) do
                 script.run_in_fiber(function()
-                    local modelHash = ENTITY.GET_ENTITY_MODEL(v)
+                    local modelHash = ENTITY.GET_ENTITY_MODEL(value)
                     local attachedVehicle = ENTITY.GET_ENTITY_OF_TYPE_ATTACHED_TO_ENTITY(PED.GET_VEHICLE_PED_IS_USING(self.get_ped()), modelHash)
                     if ENTITY.DOES_ENTITY_EXIST(attachedVehicle) then
                         ENTITY.DETACH_ENTITY(attachedVehicle)
