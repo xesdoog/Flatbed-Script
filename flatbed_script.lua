@@ -3,6 +3,7 @@
 flatbed = gui.get_tab("Flatbed Script")
 vehicleHandles = entities.get_all_vehicles_as_handles()
 attached_vehicle = {}
+local debug = false
 flatbed:add_imgui(function()
     local flatbedModel = 1353720154
     local current_vehicle = PED.GET_VEHICLE_PED_IS_USING(self.get_ped())
@@ -26,7 +27,7 @@ flatbed:add_imgui(function()
     --         end
     --     end)
     -- end
-    local closestVehicle = VEHICLE.GET_CLOSEST_VEHICLE(playerPosition.x, playerPosition.y, playerPosition.z, 10.0, 0, 70) --doesn't return cop cars
+    local closestVehicle = VEHICLE.GET_CLOSEST_VEHICLE(playerPosition.x, playerPosition.y, playerPosition.z, 10.0, 0, 70) --doesn't return cop cars or occupied pvs.
     local closestVehicleModel = ENTITY.GET_ENTITY_MODEL(closestVehicle)
     local is_car = VEHICLE.IS_THIS_MODEL_A_CAR(closestVehicleModel)
     local is_bike = VEHICLE.IS_THIS_MODEL_A_BIKE(closestVehicleModel)
@@ -81,21 +82,22 @@ flatbed:add_imgui(function()
             end
         end
         ImGui.SameLine()
-        if ImGui.Button("Tow Player Vehicle") then --not tested
-            script.run_in_fiber(function()
-                local selected_player = PLAYER.GET_PLAYER_PED(network.get_selected_player())
-                local towVeh = PED.GET_VEHICLE_PED_IS_USING(selected_player)
-                local towVehModel = ENTITY.GET_ENTITY_MODEL(towVeh)
-                local controlled = entities.take_control_of(towVeh, 350)
-                if controlled then
-                    local flatbedHeading = ENTITY.GET_ENTITY_HEADING(current_vehicle)
-                    local flatbedBone = ENTITY.GET_ENTITY_BONE_INDEX_BY_NAME(current_vehicle, "chassis")
-                    ENTITY.SET_ENTITY_HEADING(towVehModel, flatbedHeading)
-                    ENTITY.ATTACH_ENTITY_TO_ENTITY(towVeh, current_vehicle, flatbedBone, 0.0, -2.0, 1.069, 0.0, 0.0, 0.0, false, true, true, false, 1, true, 1)
-                    table.insert(attached_vehicle, towVeh)
-                end
-            end)
-        end
+        -- if ImGui.Button("Tow Player Vehicle") then
+        --     script.run_in_fiber(function()
+        --         local selected_player = PLAYER.GET_PLAYER_PED(network.get_selected_player())
+        --         local towVeh = PED.GET_VEHICLE_PED_IS_USING(selected_player)
+        --         local towVehModel = ENTITY.GET_ENTITY_MODEL(towVeh)
+        --         local vehControlled = entities.take_control_of(towVeh, 350)
+        --         local playerControlled = entities.take_control_of(selected_player, 350)
+        --         if vehControlled and playerControlled then
+        --             local flatbedHeading = ENTITY.GET_ENTITY_HEADING(current_vehicle)
+        --             local flatbedBone = ENTITY.GET_ENTITY_BONE_INDEX_BY_NAME(current_vehicle, "chassis")
+        --             ENTITY.SET_ENTITY_HEADING(towVehModel, flatbedHeading)
+        --             ENTITY.ATTACH_ENTITY_TO_ENTITY(towVeh, current_vehicle, flatbedBone, 0.0, -2.0, 1.069, 0.0, 0.0, 0.0, false, true, true, false, 1, true, 1)
+        --             table.insert(attached_vehicle, towVeh)
+        --         end
+        --     end)
+        -- end
         if ImGui.Button("Detach Vehicle") then
             for _, v in ipairs(vehicleHandles) do
                 script.run_in_fiber(function()
@@ -133,13 +135,20 @@ flatbed:add_imgui(function()
             end)
         end
     end
-    if ImGui.Button("debug") then
-        lastVeh = ENTITY.GET_ENTITY_MODEL(PLAYER.GET_PLAYERS_LAST_VEHICLE())
-        local closestVehicle2 = VEHICLE.GET_CLOSEST_VEHICLE(playerPosition.x, playerPosition.y, playerPosition.z, 10.0, 0, 70)
-        -- log.debug("Last Vehicle: "..tostring(lastVeh).." | Attached Vehicle: "..tostring(attached_vehicle[1]))
-        -- log.debug("My Coords: "..tostring(playerPosition).." | Vehicle Coords: "..tostring(vehicleCoords))
-        log.debug(tostring(closestVehicle))
-        log.debug(tostring(closestVehicle2))
+    ImGui.TextDisabled("_")
+    if ImGui.IsItemHovered() and ImGui.IsItemClicked(0) then
+        debug = not debug
+    end
+    if debug then
+        ImGui.Separator()
+        if ImGui.Button("debug") then
+            lastVeh = ENTITY.GET_ENTITY_MODEL(PLAYER.GET_PLAYERS_LAST_VEHICLE())
+            local closestVehicle2 = VEHICLE.GET_CLOSEST_VEHICLE(playerPosition.x, playerPosition.y, playerPosition.z, 10.0, 0, 70)
+            -- log.debug("Last Vehicle: "..tostring(lastVeh).." | Attached Vehicle: "..tostring(attached_vehicle[1]))
+            -- log.debug("My Coords: "..tostring(playerPosition).." | Vehicle Coords: "..tostring(vehicleCoords))
+            log.debug(tostring(closestVehicle))
+            log.debug(tostring(closestVehicle2))
+        end
     end
 end)
 script.register_looped("show selected", function(script)
