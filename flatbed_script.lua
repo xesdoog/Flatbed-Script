@@ -55,8 +55,8 @@ flatbed:add_imgui(function()
         validModel = false
     end
     if is_in_flatbed then
-        ImGui.Text("Vehicle: "..displayText)
-        towPos, used = ImGui.Checkbox("Show Selected Vehicle", towPos, true)
+        ImGui.Text("Closest Vehicle: "..displayText)
+        towPos, used = ImGui.Checkbox("Show Closest Vehicle", towPos, true)
         if ImGui.Button("   Tow    ") then
             if attached_vehicle[1] == nil then
                 if validModel then
