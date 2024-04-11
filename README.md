@@ -10,9 +10,10 @@ Flatbed script for YimMenu _[WIP]_
   - Your personal vehicle (online and single player).
   - NPC vehicles (you can kidnap npcs).
 - ❌ **Vehicles you can not tow:**
+  - Other players' personal vehicles.
   - Police vehicles.
   - Boats, planes and helicopters.
-  - _Mission vehicles? I'm not sure, I haven't tested it._
+    > _Mission vehicles? I'm not sure, I haven't tested them._
 
 ![flatbed_script](https://github.com/xesdoog/Flatbed-Script/assets/66764345/057769e4-70f0-4ace-8f57-b48be082d1ab)
 
