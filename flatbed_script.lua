@@ -1,10 +1,10 @@
 ---@ diagnostic disable: undefined-global, lowercase-global
 
-flatbed = gui.get_tab("Flatbed Script")
-vehicleHandles = entities.get_all_vehicles_as_handles()
+flatbed_script = gui.get_tab("Flatbed Script")
 attached_vehicle = {}
 local debug = false
-flatbed:add_imgui(function()
+flatbed_script:add_imgui(function()
+    local vehicleHandles = entities.get_all_vehicles_as_handles()
     local flatbedModel = 1353720154
     local current_vehicle = PED.GET_VEHICLE_PED_IS_USING(self.get_ped())
     local vehicle_model = ENTITY.GET_ENTITY_MODEL(current_vehicle)
@@ -60,21 +60,21 @@ flatbed:add_imgui(function()
         if ImGui.Button("   Tow    ") then
             if attached_vehicle[1] == nil then
                 if validModel then
-                    local controlled = entities.take_control_of(closestVehicle, 350)
-                    if controlled then
+                    -- local controlled = entities.take_control_of(closestVehicle, 350)
+                    -- if controlled then
                         flatbedHeading = ENTITY.GET_ENTITY_HEADING(current_vehicle)
                         flatbedBone = ENTITY.GET_ENTITY_BONE_INDEX_BY_NAME(current_vehicle, "chassis")
                         ENTITY.SET_ENTITY_HEADING(closestVehicleModel, flatbedHeading)
                         ENTITY.ATTACH_ENTITY_TO_ENTITY(closestVehicle, current_vehicle, flatbedBone, 0.0, -2.0, 1.069, 0.0, 0.0, 0.0, false, true, true, false, 1, true, 1)
                         table.insert(attached_vehicle, closestVehicle)
-                    else
-                        gui.show_error("Flatbed Script", "Failed to take control of the vehicle!")
-                    end
+                    -- else
+                        -- gui.show_error("Flatbed Script", "Failed to take control of the vehicle!")
+                    -- end
                 end
-                if closestVehicleModel ~= flatbedModel and not is_car and not is_bike then
+                if closestVehicle ~= nil and closestVehicleModel ~= flatbedModel and not is_car and not is_bike then
                     gui.show_message("Flatbed Script", "You can only tow cars, trucks and bikes.")
                 end
-                if closestVehicleModel == flatbedModel then
+                if closestVehicle ~= nil and closestVehicleModel == flatbedModel then
                     gui.show_message("Flatbed Script", "Sorry but you can not tow another flatbed truck.")
                 end
             else
@@ -160,7 +160,8 @@ flatbed:add_imgui(function()
         end
     end
 end)
-script.register_looped("show selected", function(script)
+script.register_looped("flatbed script", function(script)
+    script:yield()
     local current_vehicle = PED.GET_VEHICLE_PED_IS_USING(self.get_ped())
     local vehicle_model = ENTITY.GET_ENTITY_MODEL(current_vehicle)
     local flatbedHeading = ENTITY.GET_ENTITY_HEADING(current_vehicle)
@@ -194,18 +195,20 @@ script.register_looped("show selected", function(script)
         if PAD.IS_CONTROL_PRESSED(0, 73) then
             if validModel then
                 script:sleep(200)
-                local controlled = entities.take_control_of(closestVehicle, 350)
-                if controlled then
+                -- local controlled = entities.take_control_of(closestVehicle, 350)
+                -- if controlled then
                     ENTITY.SET_ENTITY_HEADING(closestVehicleModel, flatbedHeading)
                     ENTITY.ATTACH_ENTITY_TO_ENTITY(closestVehicle, current_vehicle, flatbedBone, 0.0, -2.0, 1.069, 0.0, 0.0, 0.0, false, true, true, false, 1, true, 1)
                     table.insert(attached_vehicle, closestVehicle)
                     script:sleep(200)
-                else
-                    gui.show_error("Flatbed Script", "Failed to take control of the vehicle!")
-                end
+                -- else
+                    -- gui.show_error("Flatbed Script", "Failed to take control of the vehicle!")
+                -- end
             else
-                script:sleep(400)
-                gui.show_message("Flatbed Script", "You can only tow cars, trucks and bikes.")
+                if closestVehicle ~= nil then
+                    script:sleep(400)
+                    gui.show_message("Flatbed Script", "You can only tow cars, trucks and bikes.")
+                end
             end
         end
     elseif is_in_flatbed and attached_vehicle[1] ~= nil then
@@ -221,8 +224,15 @@ script.register_looped("show selected", function(script)
                     VEHICLE.SET_VEHICLE_ON_GROUND_PROPERLY(attached_vehicle, 5.0)
                 end
             end
-            for k, _ in ipairs(attached_vehicle) do
-                table.remove(attached_vehicle, k)
+            for key, value in ipairs(attached_vehicle) do
+                local modelHash = ENTITY.GET_ENTITY_MODEL(value)
+                local attachedVehicle = ENTITY.GET_ENTITY_OF_TYPE_ATTACHED_TO_ENTITY(PED.GET_VEHICLE_PED_IS_USING(self.get_ped()), modelHash)
+                    if ENTITY.DOES_ENTITY_EXIST(attachedVehicle) then
+                        ENTITY.DETACH_ENTITY(attachedVehicle)
+                        ENTITY.SET_ENTITY_COORDS(attachedVehicle, playerPosition.x - (playerForwardX * 10), playerPosition.y - (playerForwardY * 10), playerPosition.z, false, false, false, false)
+                        VEHICLE.SET_VEHICLE_ON_GROUND_PROPERLY(attached_vehicle, 5.0)
+                    end
+                table.remove(attached_vehicle, key)
             end
             script:sleep(200)
         end
