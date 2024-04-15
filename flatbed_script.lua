@@ -13,7 +13,7 @@ flatbed_script:add_imgui(function()
     local playerPosition = ENTITY.GET_ENTITY_COORDS(self.get_ped(), false)
     local playerForwardX = ENTITY.GET_ENTITY_FORWARD_X(self.get_ped())
     local playerForwardY = ENTITY.GET_ENTITY_FORWARD_Y(self.get_ped())
--- local closestVehicle = VEHICLE.GET_CLOSEST_VEHICLE(playerPosition.x, playerPosition.y, playerPosition.z, 10.0, 0, 70) --doesn't return cop cars or occupied pvs.
+-- local closestVehicle = VEHICLE.GET_CLOSEST_VEHICLE(playerPosition.x, playerPosition.y, playerPosition.z, 10.0, 0, 70) --doesn't return cop cars or occupied PVs.
     for _, veh in ipairs(vehicleHandles) do
         script.run_in_fiber(function(script)
             local detectPos = vec3:new(playerPosition.x - (playerForwardX * 10), playerPosition.y - (playerForwardY * 10), playerPosition.z)
@@ -64,7 +64,21 @@ flatbed_script:add_imgui(function()
     if is_in_flatbed then
         ImGui.Text(displayText)
         towPos, used = ImGui.Checkbox("Show Towing Position", towPos, true)
+        ImGui.SameLine()
+        ImGui.TextDisabled("(?)")
+        if ImGui.IsItemHovered() then
+            ImGui.BeginTooltip()
+            ImGui.Text("Marks the position at which the script\ndetects nearby vehicles.")
+            ImGui.EndTooltip()
+        end
         towEverything, used = ImGui.Checkbox("Tow Everything", towEverything, true)
+        ImGui.SameLine()
+        ImGui.TextDisabled("(?)")
+        if ImGui.IsItemHovered() then
+            ImGui.BeginTooltip()
+            ImGui.Text("By default, the script is limited to cars,\ntrucks and bikes only. This option\nremoves that limit.")
+            ImGui.EndTooltip()
+        end
         if towEverything then
             modelOverride = true
         else
@@ -77,8 +91,31 @@ flatbed_script:add_imgui(function()
                     if controlled then
                         flatbedHeading = ENTITY.GET_ENTITY_HEADING(current_vehicle)
                         flatbedBone = ENTITY.GET_ENTITY_BONE_INDEX_BY_NAME(current_vehicle, "chassis_dummy")
+                        local vehicleClass = VEHICLE.GET_VEHICLE_CLASS(closestVehicle)
+                        if vehicleClass == 1 then
+                            zAxis = 0.9
+                            yAxis = -2.3
+                        elseif vehicleClass == 2 then
+                            zAxis = 0.993
+                            yAxis = -2.17046
+                        elseif vehicleClass == 6 then
+                            zAxis = 1.00069420
+                            yAxis = -2.17046
+                        elseif vehicleClass == 7 then
+                            zAxis = 1.009
+                            yAxis = -2.17036
+                        elseif vehicleClass == 15 then
+                            zAxis = 1.3
+                            yAxis = -2.21069
+                        elseif vehicleClass == 16 then
+                            zAxis = 1.5
+                            yAxis = -2.21069
+                        else
+                            zAxis = 1.1
+                            yAxis = -2.0
+                        end
                         ENTITY.SET_ENTITY_HEADING(closestVehicleModel, flatbedHeading)
-                        ENTITY.ATTACH_ENTITY_TO_ENTITY(closestVehicle, current_vehicle, flatbedBone, 0.0, -2.0, 1.069, 0.0, 0.0, 0.0, false, true, true, false, 1, true, 1)
+                        ENTITY.ATTACH_ENTITY_TO_ENTITY(closestVehicle, current_vehicle, flatbedBone, 0.0, yAxis, zAxis, 0.0, 0.0, 0.0, true, true, false, false, 1, true, 1)
                         table.insert(attached_vehicle, closestVehicle)
                     else
                         gui.show_error("Flatbed Script", "Failed to take control of the vehicle!")
@@ -154,10 +191,12 @@ flatbed_script:add_imgui(function()
                     local vehPos = ENTITY.GET_ENTITY_COORDS(veh, false)
                     local vDist = SYSTEM.VDIST(detectPos.x, detectPos.y, detectPos.z, vehPos.x, vehPos.y, vehPos.z)
                     local vHash =  ENTITY.GET_ENTITY_MODEL(veh)
+                    vehicleClass = VEHICLE.GET_VEHICLE_CLASS(closestVehicle)
                 end)
             end
-            -- log.debug(tostring(closestVehicle))
-            log.debug(tostring(vDist))
+            log.debug(tostring(closestVehicle))
+            -- log.debug(tostring(vDist))
+            log.debug(tostring(vehicleClass))
         end
     end
 end)
@@ -210,8 +249,31 @@ script.register_looped("flatbed script", function(script)
             script:sleep(200)
             local controlled = entities.take_control_of(closestVehicle, 350)
             if controlled then
+                local vehicleClass = VEHICLE.GET_VEHICLE_CLASS(closestVehicle)
+                if vehicleClass == 1 then
+                    zAxis = 0.9
+                    yAxis = -2.3
+                elseif vehicleClass == 2 then
+                    zAxis = 0.993
+                    yAxis = -2.17046
+                elseif vehicleClass == 6 then
+                    zAxis = 1.00069420
+                    yAxis = -2.17046
+                elseif vehicleClass == 7 then
+                    zAxis = 1.009
+                    yAxis = -2.17036
+                elseif vehicleClass == 15 then
+                    zAxis = 1.3
+                    yAxis = -2.21069
+                elseif vehicleClass == 16 then
+                    zAxis = 1.5
+                    yAxis = -2.21069
+                else
+                    zAxis = 1.1
+                    yAxis = -2.0
+                end
                 ENTITY.SET_ENTITY_HEADING(closestVehicleModel, flatbedHeading)
-                ENTITY.ATTACH_ENTITY_TO_ENTITY(closestVehicle, current_vehicle, flatbedBone, 0.0, -2.0, 1.069, 0.0, 0.0, 0.0, false, true, true, false, 1, true, 1)
+                ENTITY.ATTACH_ENTITY_TO_ENTITY(closestVehicle, current_vehicle, flatbedBone, 0.0, yAxis, zAxis, 0.0, 0.0, 0.0, false, true, true, false, 1, true, 1)
                 table.insert(attached_vehicle, closestVehicle)
                 script:sleep(200)
             else
