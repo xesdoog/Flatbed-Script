@@ -18,6 +18,12 @@
 #### Using "*Tow Everything*" option:
  - ✅ **Vehicles you can tow:**
     - Everything. *(with bugs)*
+## Usage
+1. Get inside a flatbed truck.
+   > You can hijack one from the street *(they usually spawn near [Elysian Island](https://gta.fandom.com/wiki/Elysian_Island?file=ElysianIsland-IngameGPS-GTAV-Map.png))* or spawn one using either YimMenu or this script itself.
+2. Park in front of the vehicle you want to tow.
+   > The detection area is behind the Tow truck. You can see the exact area by enabling "*Show Towing Position*" in the script.
+3. Press **Tow** button in the script UI or vehicle duck button (Defalut: **[X]** on keyboard, **[A]** on controller).
 
 ![flatbed_script(1)](https://github.com/xesdoog/Flatbed-Script/assets/66764345/296f5b47-64fa-4d39-b386-f081412f40c8)
 
