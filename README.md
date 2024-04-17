@@ -31,6 +31,6 @@
 - Towed vehicle position is not consistent. Some will clip through the flatbed and others will sit higher.
 
 ## To Do:
-- [ ] Fix position of towed vehicles based on vehicle's size or class. *(in progress)*
+- [ ] Fix position of towed vehicles based on vehicle's size or class. *(in progress)* https://github.com/xesdoog/Flatbed-Script/issues/1
 - [x] ~Use another logic for finding nearby vehicles, therefore including more *if not all* GTA vehicles. *(Towing a plane still won't make sense though but whatever)*~ ✅**Done.**
   > Boats, planes and helicopters are disabled by default except the Buzzard. You can activate the "*Tow Everything*" option to enable towing for all GTA vehicles.
