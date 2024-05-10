@@ -1,8 +1,11 @@
 ---@ diagnostic disable: undefined-global, lowercase-global
 
 flatbed_script = gui.get_tab("Flatbed Script")
-attached_vehicle = {}
+local attached_vehicle = 0
 local debug = false
+local xAxis = 0.0
+local yAxis = 0.0
+local zAxis = 0.0
 -- local validModel = false
 local modelOverride = false
 flatbed_script:add_imgui(function()
@@ -44,8 +47,8 @@ flatbed_script:add_imgui(function()
     else
         displayText = ("Closest Vehicle: "..tostring(closestVehicleName))
     end
-    if attached_vehicle[1] ~= nil then
-        displayText = "Towing..."
+    if attached_vehicle ~= 0 then
+        displayText = "Towing "..vehicles.get_vehicle_display_name(ENTITY.GET_ENTITY_MODEL(attached_vehicle)).."."
     end
     if modelOverride then
         validModel = true
@@ -84,14 +87,15 @@ flatbed_script:add_imgui(function()
         else
             modelOverride = false
         end
-        if ImGui.Button("   Tow    ") then
-            if attached_vehicle[1] == nil then
-                if validModel and closestVehicleModel ~= flatbedModel then
+        if attached_vehicle == 0 then
+            if ImGui.Button("   Tow    ") then
+                if validModel and closestVehicle ~= nil and closestVehicleModel ~= flatbedModel then
                     script.run_in_fiber(function()
                         controlled = entities.take_control_of(closestVehicle, 300)
                         if controlled then
                             flatbedHeading = ENTITY.GET_ENTITY_HEADING(current_vehicle)
                             flatbedBone = ENTITY.GET_ENTITY_BONE_INDEX_BY_NAME(current_vehicle, "chassis_dummy")
+                            vehBone = ENTITY.GET_ENTITY_BONE_INDEX_BY_NAME(closestVehicle, "chassis_dummy")
                             local vehicleClass = VEHICLE.GET_VEHICLE_CLASS(closestVehicle)
                             if vehicleClass == 1 then
                                 zAxis = 0.9
@@ -116,8 +120,9 @@ flatbed_script:add_imgui(function()
                                 yAxis = -2.0
                             end
                             ENTITY.SET_ENTITY_HEADING(closestVehicleModel, flatbedHeading)
-                            ENTITY.ATTACH_ENTITY_TO_ENTITY(closestVehicle, current_vehicle, flatbedBone, 0.0, yAxis, zAxis, 0.0, 0.0, 0.0, true, true, false, false, 1, true, 1)
-                            table.insert(attached_vehicle, closestVehicle)
+                            ENTITY.ATTACH_ENTITY_TO_ENTITY(closestVehicle, current_vehicle, flatbedBone, xAxis, yAxis, zAxis, 0.0, 0.0, 0.0, true, true, false, false, 1, true, 1)
+                            attached_vehicle = closestVehicle
+                            ENTITY.SET_ENTITY_CANT_CAUSE_COLLISION_DAMAGED_ENTITY(attached_vehicle, current_vehicle)
                         else
                             gui.show_error("Flatbed Script", "Failed to take control of the vehicle!")
                         end
@@ -129,57 +134,80 @@ flatbed_script:add_imgui(function()
                 if closestVehicle ~= nil and closestVehicleModel == flatbedModel then
                     gui.show_message("Flatbed Script", "Sorry but you can not tow another flatbed truck.")
                 end
-            else
-                gui.show_error("Flatbed Script", "You are already towing a vehicle.")
             end
-        end
-        ImGui.SameLine()
-        if ImGui.Button(" Detach ") then
-            for _, v in ipairs(vehicleHandles) do
+        else
+            if ImGui.Button(" Detach ") then
                 script.run_in_fiber(function()
-                    local modelHash = ENTITY.GET_ENTITY_MODEL(v)
+                    local modelHash = ENTITY.GET_ENTITY_MODEL(attached_vehicle)
                     local attachedVehicle = ENTITY.GET_ENTITY_OF_TYPE_ATTACHED_TO_ENTITY(PED.GET_VEHICLE_PED_IS_USING(self.get_ped()), modelHash)
+                    local attachedVehcoords = ENTITY.GET_ENTITY_COORDS(attached_vehicle, false)
                     controlled = entities.take_control_of(attachedVehicle, 300)
                     if ENTITY.DOES_ENTITY_EXIST(attachedVehicle) then
                         if controlled then
                             ENTITY.DETACH_ENTITY(attachedVehicle)
-                            ENTITY.SET_ENTITY_COORDS(attachedVehicle, playerPosition.x - (playerForwardX * 10), playerPosition.y - (playerForwardY * 10), playerPosition.z, false, false, false, false)
+                            ENTITY.SET_ENTITY_COORDS(attachedVehicle, attachedVehcoords.x - (playerForwardX * 10), attachedVehcoords.y - (playerForwardY * 10), playerPosition.z, false, false, false, false)
                             VEHICLE.SET_VEHICLE_ON_GROUND_PROPERLY(attached_vehicle, 5.0)
+                            attached_vehicle = 0
                         end
                     end
                 end)
             end
-            for key, value in ipairs(attached_vehicle) do
-                script.run_in_fiber(function()
-                    local modelHash = ENTITY.GET_ENTITY_MODEL(value)
-                    local attachedVehicle = ENTITY.GET_ENTITY_OF_TYPE_ATTACHED_TO_ENTITY(PED.GET_VEHICLE_PED_IS_USING(self.get_ped()), modelHash)
-                    if ENTITY.DOES_ENTITY_EXIST(attachedVehicle) then
-                        ENTITY.DETACH_ENTITY(attachedVehicle)
-                        ENTITY.SET_ENTITY_COORDS(attachedVehicle, playerPosition.x - (playerForwardX * 10), playerPosition.y - (playerForwardY * 10), playerPosition.z, false, false, false, false)
-                        VEHICLE.SET_VEHICLE_ON_GROUND_PROPERLY(attached_vehicle, 5.0)
-                    end
-                end)
-                table.remove(attached_vehicle, key)
+            ImGui.Spacing();ImGui.Text("Adjust Vehicle Position")
+            if ImGui.IsItemHovered() then
+                ImGui.BeginTooltip()
+                ImGui.PushTextWrapPos(ImGui.GetFontSize() * 20)
+                ImGui.TextWrapped("For the arrows to make sense, move your camera to the right. (Look right)")
+                ImGui.PopTextWrapPos()
+                ImGui.EndTooltip()
+            end
+            ImGui.Separator();ImGui.Spacing()
+            ImGui.Dummy(100, 1);ImGui.SameLine()
+            ImGui.ArrowButton("##Up", 2)
+            if ImGui.IsItemActive() then
+                zAxis = zAxis + 0.01
+                ENTITY.ATTACH_ENTITY_TO_ENTITY(attached_vehicle, current_vehicle, flatbedBone, xAxis, yAxis, zAxis, 0.0, 0.0, 0.0, true, true, false, false, 1, true, 1)
+            end
+            ImGui.Dummy(60, 1);ImGui.SameLine()
+            ImGui.ArrowButton("##Left", 0)
+            if ImGui.IsItemActive() then
+                yAxis = yAxis + 0.01
+                ENTITY.ATTACH_ENTITY_TO_ENTITY(attached_vehicle, current_vehicle, flatbedBone, xAxis, yAxis, zAxis, 0.0, 0.0, 0.0, true, true, false, false, 1, true, 1)
+            end
+            ImGui.SameLine();ImGui.Dummy(23, 1);ImGui.SameLine()
+            ImGui.ArrowButton("##Right", 1)
+            if ImGui.IsItemActive() then
+                yAxis = yAxis - 0.01
+                ENTITY.ATTACH_ENTITY_TO_ENTITY(attached_vehicle, current_vehicle, flatbedBone, xAxis, yAxis, zAxis, 0.0, 0.0, 0.0, true, true, false, false, 1, true, 1)
+            end
+            ImGui.Dummy(100, 1);ImGui.SameLine()
+            ImGui.ArrowButton("##Down", 3)
+            if ImGui.IsItemActive() then
+                zAxis = zAxis - 0.01
+                ENTITY.ATTACH_ENTITY_TO_ENTITY(attached_vehicle, current_vehicle, flatbedBone, xAxis, yAxis, zAxis, 0.0, 0.0, 0.0, true, true, false, false, 1, true, 1)
             end
         end
     else
         ImGui.Text("Get inside a flatbed truck to use the script.")
         if ImGui.Button("Spawn Flatbed Truck") then
             script.run_in_fiber(function(script)
-                local try = 0
-                while not STREAMING.HAS_MODEL_LOADED(flatbedModel) do
-                    STREAMING.REQUEST_MODEL(flatbedModel)
-                    script:yield()
-                    if try > 100 then
-                        return
-                    else
-                        try = try + 1
+                if not PED.IS_PED_SITTING_IN_ANY_VEHICLE(self.get_ped()) then
+                    local try = 0
+                    while not STREAMING.HAS_MODEL_LOADED(flatbedModel) do
+                        STREAMING.REQUEST_MODEL(flatbedModel)
+                        script:yield()
+                        if try > 100 then
+                            return
+                        else
+                            try = try + 1
+                        end
                     end
+                    fltbd = VEHICLE.CREATE_VEHICLE(flatbedModel, playerPosition.x, playerPosition.y, playerPosition.z, ENTITY.GET_ENTITY_HEADING(self.get_ped()), true, false, false)
+                    -- script:sleep(200)
+                    PED.SET_PED_INTO_VEHICLE(self.get_ped(), fltbd, -1)
+                    ENTITY.SET_ENTITY_AS_NO_LONGER_NEEDED(fltbd)
+                else
+                    gui.show_error("Flatbed Script", "Exit your current vehicle first.")
                 end
-                fltbd = VEHICLE.CREATE_VEHICLE(flatbedModel, playerPosition.x, playerPosition.y, playerPosition.z, ENTITY.GET_ENTITY_HEADING(self.get_ped()), true, false, false)
-                -- script:sleep(200)
-                PED.SET_PED_INTO_VEHICLE(self.get_ped(), fltbd, -1)
-                ENTITY.SET_ENTITY_AS_NO_LONGER_NEEDED(fltbd)
             end)
         end
     end
@@ -249,7 +277,7 @@ script.register_looped("flatbed script", function(script)
     else
         is_in_flatbed = false
     end
-    if is_in_flatbed and attached_vehicle[1] == nil then
+    if is_in_flatbed and attached_vehicle == 0 then
         if PAD.IS_CONTROL_PRESSED(0, 73) and validModel and closestVehicleModel ~= flatbedModel then
             script:sleep(200)
             controlled = entities.take_control_of(closestVehicle, 350)
@@ -279,7 +307,7 @@ script.register_looped("flatbed script", function(script)
                 end
                 ENTITY.SET_ENTITY_HEADING(closestVehicleModel, flatbedHeading)
                 ENTITY.ATTACH_ENTITY_TO_ENTITY(closestVehicle, current_vehicle, flatbedBone, 0.0, yAxis, zAxis, 0.0, 0.0, 0.0, false, true, true, false, 1, true, 1)
-                table.insert(attached_vehicle, closestVehicle)
+                attached_vehicle = closestVehicle
                 script:sleep(200)
             else
                 gui.show_error("Flatbed Script", "Failed to take control of the vehicle!")
@@ -293,39 +321,29 @@ script.register_looped("flatbed script", function(script)
             script:sleep(400)
             gui.show_message("Flatbed Script", "Sorry but you can not tow another flatbed truck.")
         end
-    elseif is_in_flatbed and attached_vehicle[1] ~= nil then
+    elseif is_in_flatbed and attached_vehicle ~= 0 then
         if PAD.IS_CONTROL_PRESSED(0, 73) then
             script:sleep(200)
-            local vehicleHandles = entities.get_all_vehicles_as_handles()
             for _, v in ipairs(vehicleHandles) do
                 local modelHash = ENTITY.GET_ENTITY_MODEL(v)
                 local attachedVehicle = ENTITY.GET_ENTITY_OF_TYPE_ATTACHED_TO_ENTITY(current_vehicle, modelHash)
+                local attachedVehcoords = ENTITY.GET_ENTITY_COORDS(attached_vehicle, false)
                 controlled = entities.take_control_of(attachedVehicle, 350)
                 if ENTITY.DOES_ENTITY_EXIST(attachedVehicle) then
                     if controlled then
                         ENTITY.DETACH_ENTITY(attachedVehicle)
-                        ENTITY.SET_ENTITY_COORDS(attachedVehicle, playerPosition.x - (playerForwardX * 10), playerPosition.y - (playerForwardY * 10), playerPosition.z, 0, 0, 0, 0)
+                        ENTITY.SET_ENTITY_COORDS(attachedVehicle, attachedVehcoords.x - (playerForwardX * 10), attachedVehcoords.y - (playerForwardY * 10), playerPosition.z, 0, 0, 0, 0)
                         VEHICLE.SET_VEHICLE_ON_GROUND_PROPERLY(attached_vehicle, 5.0)
+                        attached_vehicle = 0
                     end
                 end
             end
-            for key, value in ipairs(attached_vehicle) do
-                local modelHash = ENTITY.GET_ENTITY_MODEL(value)
-                local attachedVehicle = ENTITY.GET_ENTITY_OF_TYPE_ATTACHED_TO_ENTITY(PED.GET_VEHICLE_PED_IS_USING(self.get_ped()), modelHash)
-                    if ENTITY.DOES_ENTITY_EXIST(attachedVehicle) then
-                        ENTITY.DETACH_ENTITY(attachedVehicle)
-                        ENTITY.SET_ENTITY_COORDS(attachedVehicle, playerPosition.x - (playerForwardX * 10), playerPosition.y - (playerForwardY * 10), playerPosition.z, 0, 0, 0, 0)
-                        VEHICLE.SET_VEHICLE_ON_GROUND_PROPERLY(attached_vehicle, 5.0)
-                    end
-                table.remove(attached_vehicle, key)
-            end
-            script:sleep(200)
         end
     end
 end)
 script.register_looped("TowPos Marker", function()
     if towPos then
-        if is_in_flatbed and attached_vehicle[1] == nil then
+        if is_in_flatbed and attached_vehicle == 0 then
             local playerPosition = ENTITY.GET_ENTITY_COORDS(self.get_ped(), false)
             local playerForwardX = ENTITY.GET_ENTITY_FORWARD_X(self.get_ped())
             local playerForwardY = ENTITY.GET_ENTITY_FORWARD_Y(self.get_ped())
